@@ -40,7 +40,7 @@ export default function InterviewerPage() {
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [interimText, setInterimText] = useState('');
   
-  const [activeCopilotTab, setActiveCopilotTab] = useState<'questions' | 'evaluation'>('questions');
+  const [activeCopilotTab, setActiveCopilotTab] = useState<'questions' | 'evaluation' | 'live'>('questions');
   const [questions, setQuestions] = useState<string[]>([]);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [currentEvaluation, setCurrentEvaluation] = useState<any>(null);
@@ -62,8 +62,6 @@ export default function InterviewerPage() {
   useEffect(() => {
     return () => {
       speechService.stopListening();
-      audioStreamer.stop();
-      liveApiService.disconnect();
     };
   }, []);
 
