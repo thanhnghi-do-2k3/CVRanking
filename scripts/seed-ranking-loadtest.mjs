@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { buildPublicCandidatePool, createJob, resolveProfiles, runRanking, uploadBatch } from "./lib/candidate-generator.mjs";
+import { buildPublicCandidateFiles, createJob, resolveCandidateFiles, runRanking, uploadBatch } from "./lib/candidate-generator.mjs";
 
 const baseURL = process.env.RANKING_DEMO_URL ?? process.argv[2] ?? "http://localhost:3000";
 const totalCVs = Number.parseInt(process.env.RANKING_LOAD_COUNT ?? process.argv[3] ?? "150", 10);
@@ -33,13 +33,14 @@ async function main() {
   }
 
   const startedAt = Date.now();
-  const pool = await buildPublicCandidatePool(totalCVs);
+  console.log(`Rendering ${totalCVs} real CVs from public datasets (this launches a headless browser)...`);
+  const pool = await buildPublicCandidateFiles(totalCVs);
   console.log(
     pool
-      ? `Sourced ${pool.length} candidates from public datasets (opensporks/resumes, brackozi/Resume, InferencePrince555/Resume-Dataset + randomuser.me).`
+      ? `Sourced ${pool.length} real CVs from public datasets (opensporks/resumes, brackozi/Resume, InferencePrince555/Resume-Dataset + randomuser.me).`
       : "Using local synthetic candidate profiles (public dataset fetch skipped or unavailable).",
   );
-  const profiles = resolveProfiles(pool, totalCVs);
+  const files = resolveCandidateFiles(pool, totalCVs);
 
   const created = await createJob(baseURL, jd.title, jd.description);
   console.log(`Created JD: ${created.job.title}`);
@@ -48,7 +49,7 @@ async function main() {
   let accepted = 0;
   for (let start = 0; start < totalCVs; start += batchSize) {
     const end = Math.min(start + batchSize, totalCVs);
-    const uploaded = await uploadBatch(baseURL, created.job.id, start, end, profiles);
+    const uploaded = await uploadBatch(baseURL, created.job.id, start, end, files);
     accepted += uploaded.upload.accepted;
     console.log(`Uploaded ${end}/${totalCVs} CV · accepted so far: ${accepted}`);
   }

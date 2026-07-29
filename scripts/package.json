@@ -1,0 +1,9 @@
+{
+  "name": "cvranking-seed-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling for seeding the demo ranking store with real data (not part of any deployed app).",
+  "dependencies": {
+    "playwright-core": "1.62.0"
+  }
+}

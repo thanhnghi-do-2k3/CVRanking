@@ -1,19 +1,25 @@
 // Shared candidate/PDF generator used by the seeding scripts (seed-ranking-loadtest.mjs,
-// seed-ranking-variety.mjs). Pulls real names and real resume text from public, no-auth
-// sources on every call so seeded data stays varied instead of looping the same templates.
-// Falls back to local synthetic profiles if the public sources are unreachable.
+// seed-ranking-variety.mjs). Pulls real names and real resumes from public, no-auth sources
+// on every call and renders the *actual* resume markup (real section layout, not our own
+// template) to a real PDF via a headless browser. Falls back to a local synthetic template
+// only if the public sources are completely unreachable.
+
+import { chromium } from "playwright-core";
 
 const HF_DATASETS_SERVER = "https://datasets-server.huggingface.co";
 const RANDOM_USER_API = "https://randomuser.me/api/";
 const fetchDisabled = process.env.RANKING_LOAD_NO_PUBLIC_DATA === "1";
+const RENDER_CONCURRENCY = 6;
 
 // Three independent, no-auth-required public resume sources. Every fetch pulls from all
-// three and mixes the results, so a single run isn't limited to one dataset's flavor of
-// content. Each `pick()` normalizes that dataset's own column names into { text, category }.
+// three and mixes the results. `opensporks/resumes` also ships the resume's original HTML
+// markup (real section layout, headings, etc.) — that's what gets rendered when present;
+// the other two only have plain text, so those render as a plain (but still fully real,
+// un-truncated) resume body instead of our own template.
 const RESUME_SOURCES = [
   {
     dataset: "opensporks/resumes", // mirror of the public Kaggle "Resume Dataset" — 2.4k+ resumes, ~24 job categories
-    pick: (row) => ({ text: row.Resume_str, category: row.Category }),
+    pick: (row) => ({ text: row.Resume_str, category: row.Category, html: row.Resume_html }),
   },
   {
     dataset: "brackozi/Resume", // ~960 resumes labeled by job category
@@ -35,6 +41,13 @@ export function sanitizeForPDF(text) {
     .replace(/[^\x20-\x7E]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
 
 async function fetchDatasetRowCount(dataset) {
@@ -86,7 +99,7 @@ function shuffleInPlace(array) {
 
 // Spreads `count` across all RESUME_SOURCES and mixes the results. A source that's
 // unreachable is skipped (logged) rather than failing the whole fetch — only if every
-// source fails does this throw, which is what tells buildPublicCandidatePool to fall back.
+// source fails does this throw, which is what tells buildPublicCandidateFiles to fall back.
 async function fetchResumeRows(count) {
   const perSource = Math.ceil(count / RESUME_SOURCES.length);
   const settled = await Promise.allSettled(RESUME_SOURCES.map((source) => fetchRowsFromSource(source, perSource)));
@@ -119,58 +132,104 @@ async function fetchRealNames(count) {
   return (payload.results ?? []).map((entry) => `${entry.name.first} ${entry.name.last}`);
 }
 
-const RESUME_SECTION_BOUNDARY = /\b(Summary|Professional Summary|Career Overview|Objective|Experience|Highlights|Accomplishments|Skills)\b/;
+// Wraps the *real* resume content in a minimal page shell — just enough CSS to make the
+// dataset's own markup readable — plus a small header banner carrying the candidate's real
+// (randomuser.me) name, since the dataset anonymizes that field. No TalentRank-branded boxes,
+// no fabricated bullet points: what renders here is the actual resume text/HTML we fetched.
+function buildResumeHTML(fullName, entry) {
+  const firstName = fullName.split(" ")[0].toLowerCase();
+  const header = `
+    <div class="cv-header">
+      <h1>${escapeHTML(fullName)}</h1>
+      <p>${escapeHTML(firstName)}@resumeseed.example.com &middot; Available in 30 days</p>
+    </div>`;
 
-function splitResumeIntoLines(entry) {
-  const raw = sanitizeForPDF(String(entry.text ?? ""));
-  const boundary = RESUME_SECTION_BOUNDARY.exec(raw);
-  const titleSource = boundary ? raw.slice(0, boundary.index) : raw.slice(0, 80);
-  const title = (titleSource.trim() || entry.category || "Professional").slice(0, 70);
-  const body = boundary ? raw.slice(boundary.index) : raw.slice(80);
-  const sentences = body
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 25)
-    .slice(0, 6);
-  return { title, sentences };
+  if (entry?.html) {
+    return `<!doctype html><html><head><meta charset="utf-8"><style>
+      * { box-sizing: border-box; }
+      body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #1f2937; font-size: 12px; }
+      .cv-header { padding: 26px 34px; background: #0f172a; color: #fff; }
+      .cv-header h1 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+      .cv-header p { margin: 6px 0 0; font-size: 12.5px; color: #cbd5e1; }
+      #document { padding: 22px 34px; line-height: 1.55; }
+      .sectiontitle { font-weight: 700; color: #1d4ed8; text-transform: uppercase; font-size: 11px; letter-spacing: .06em; }
+      .heading { margin-top: 16px; }
+      .name { display: none; }
+    </style></head><body>${header}${entry.html}</body></html>`;
+  }
+
+  // No rich HTML for this source — render the full real resume text as-is (plain, readable),
+  // not squeezed into our own template.
+  const text = sanitizeForPDF(String(entry?.text ?? "")) || "No resume content was available from the source dataset.";
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+    body { font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #1f2937; font-size: 12.5px; }
+    .cv-header { padding: 26px 34px; background: #0f172a; color: #fff; font-family: Arial, Helvetica, sans-serif; }
+    .cv-header h1 { margin: 0; font-size: 22px; letter-spacing: -0.02em; }
+    .cv-header p { margin: 6px 0 0; font-size: 12.5px; color: #cbd5e1; }
+    .cv-body { padding: 24px 34px; line-height: 1.7; white-space: pre-wrap; }
+  </style></head><body>${header}<div class="cv-body">${escapeHTML(text)}</div></body></html>`;
+}
+
+async function renderCandidatePDF(browser, fullName, entry) {
+  const page = await browser.newPage();
+  try {
+    await page.setContent(buildResumeHTML(fullName, entry), { waitUntil: "load" });
+    return await page.pdf({ format: "A4", printBackground: true });
+  } finally {
+    await page.close();
+  }
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < items.length) {
+      const current = cursor;
+      cursor += 1;
+      results[current] = await mapper(items[current], current);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 // Fetches `count` real names + `count` real resumes (mixed across all RESUME_SOURCES) and
-// pairs them up into candidate profiles. Returns null (never throws) if public sources are
-// disabled or all unreachable, so callers can fall back to profileFor() below.
-export async function buildPublicCandidatePool(count) {
+// renders each pair into an actual PDF file via a headless browser — the real resume layout
+// (or, for sources without HTML, the real full resume text) with the candidate's real name
+// on top. Returns null (never throws) if public sources are disabled or all unreachable, so
+// callers can fall back to the local synthetic template further below.
+export async function buildPublicCandidateFiles(count) {
   if (fetchDisabled) {
     return null;
   }
+  let browser;
   try {
     const [names, resumes] = await Promise.all([fetchRealNames(count), fetchResumeRows(count)]);
-    return names.map((fullName, index) => {
-      const resumeEntry = resumes[index];
-      const { title, sentences } = splitResumeIntoLines(resumeEntry ?? {});
-      const category = String(resumeEntry?.category ?? "").replaceAll("-", " ").trim();
-      const nameWithIndex = `${fullName} ${String(index + 1).padStart(3, "0")}`;
+    browser = await chromium.launch({ headless: true });
+    const activeBrowser = browser;
+    return await mapWithConcurrency(names, RENDER_CONCURRENCY, async (baseName, index) => {
+      const fullName = `${baseName} ${String(index + 1).padStart(3, "0")}`;
+      const buffer = await renderCandidatePDF(activeBrowser, fullName, resumes[index]);
       return {
-        name: nameWithIndex,
-        title: title || category || "Professional",
-        years: 2 + (index % 12),
-        skills: [],
-        impacts:
-          sentences.length > 0
-            ? sentences
-            : [`${category || "Professional"} background sourced from a public resume dataset.`],
+        name: fullName,
+        filename: `${String(index + 1).padStart(3, "0")}-${fullName.toLowerCase().replaceAll(" ", "-")}.pdf`,
+        buffer,
       };
     });
   } catch (error) {
     console.warn(`Skipping public dataset fetch (${error.message}); using local synthetic profiles instead.`);
     return null;
+  } finally {
+    await browser?.close();
   }
 }
 
-// Samples `count` profiles out of a shared pool, shuffled once and then cycled through if
-// `count` exceeds the pool size. This is what lets the same real candidate show up under
-// more than one JD — mirroring a person applying to several job postings — instead of every
-// job getting a fully disjoint set of CVs.
-export function sampleProfiles(pool, count) {
+// Samples `count` candidate files out of a shared pool, shuffled once and then cycled
+// through if `count` exceeds the pool size. This is what lets the same real candidate show
+// up under more than one JD — mirroring a person applying to several job postings — instead
+// of every job getting a fully disjoint set of CVs.
+export function sampleCandidateFiles(pool, count) {
   if (!pool || pool.length === 0) {
     return [];
   }
@@ -185,9 +244,9 @@ const firstNames = [
 
 const lastNames = ["Nguyen", "Tran", "Le", "Pham", "Hoang", "Vo", "Dang", "Bui", "Do", "Phan"];
 
-// Local, network-free fallback profile generator. Not tailored to any specific JD — just
-// a spread of backend/adjacent tech profiles so ranking still has signal to work with when
-// the public sources above are unavailable.
+// Local, network-free fallback profile generator (used only when the public sources above
+// are completely unreachable). Not tailored to any specific JD — just a spread of
+// backend/adjacent tech profiles so ranking still has signal to work with.
 export function profileFor(index, total) {
   const name = `${firstNames[index % firstNames.length]} ${lastNames[Math.floor(index / firstNames.length) % lastNames.length]} ${String(index + 1).padStart(3, "0")}`;
 
@@ -312,6 +371,8 @@ function wrapText(value, width) {
   return lines;
 }
 
+// Fallback-only template renderer (used solely when every public source above is
+// unreachable). Produces our own hand-rolled PDF from a synthetic profile.
 export function makePDF(lines) {
   const name = lines[0];
   const title = lines[1];
@@ -415,7 +476,7 @@ export function makePDF(lines) {
   return Buffer.from(pdf, "utf-8");
 }
 
-export function makeCandidatePDF(profile, filenameIndex) {
+function makeCandidatePDF(profile, filenameIndex) {
   const lines = [
     profile.name,
     profile.title,
@@ -429,13 +490,17 @@ export function makeCandidatePDF(profile, filenameIndex) {
   };
 }
 
-// Resolves a full array of `count` profiles: real ones from `pool` when available
-// (sampled/reused as needed), otherwise the local synthetic generator for every slot.
-export function resolveProfiles(pool, count, total = count) {
-  if (!pool || pool.length === 0) {
-    return Array.from({ length: count }, (_, index) => profileFor(index, total));
+// Resolves a full array of `count` candidate files: real ones from `pool` when available
+// (sampled/reused as needed), otherwise the local synthetic template for every slot.
+export function resolveCandidateFiles(pool, count, total = count) {
+  if (pool && pool.length > 0) {
+    return sampleCandidateFiles(pool, count);
   }
-  return sampleProfiles(pool, count);
+  return Array.from({ length: count }, (_, index) => {
+    const profile = profileFor(index, total);
+    const file = makeCandidatePDF(profile, index);
+    return { name: profile.name, filename: file.filename, buffer: file.buffer };
+  });
 }
 
 export async function postForm(baseURL, form) {
@@ -458,13 +523,13 @@ export async function createJob(baseURL, title, description) {
   return postForm(baseURL, form);
 }
 
-export async function uploadBatch(baseURL, jobID, start, end, profiles) {
+export async function uploadBatch(baseURL, jobID, start, end, files) {
   const form = new FormData();
   form.append("action", "upload_cvs");
   form.append("job_id", jobID);
   for (let index = start; index < end; index += 1) {
-    const candidate = makeCandidatePDF(profiles[index], index);
-    form.append("files", new Blob([candidate.buffer], { type: "application/pdf" }), candidate.filename);
+    const file = files[index];
+    form.append("files", new Blob([file.buffer], { type: "application/pdf" }), file.filename);
   }
   return postForm(baseURL, form);
 }

@@ -10,11 +10,11 @@
 // turn up applying to more than one JD.
 
 import {
-  buildPublicCandidatePool,
+  buildPublicCandidateFiles,
   createJob,
-  resolveProfiles,
+  resolveCandidateFiles,
   runRanking,
-  sampleProfiles,
+  sampleCandidateFiles,
   uploadBatch,
 } from "./lib/candidate-generator.mjs";
 
@@ -202,16 +202,16 @@ function countForTemplate(template) {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
-async function seedJob(template, profiles, appearances) {
+async function seedJob(template, files, appearances) {
   const created = await createJob(baseURL, template.title, template.description);
-  for (const profile of profiles) {
-    appearances.set(profile.name, (appearances.get(profile.name) ?? 0) + 1);
+  for (const file of files) {
+    appearances.set(file.name, (appearances.get(file.name) ?? 0) + 1);
   }
 
   let accepted = 0;
-  for (let start = 0; start < profiles.length; start += batchSize) {
-    const end = Math.min(start + batchSize, profiles.length);
-    const uploaded = await uploadBatch(baseURL, created.job.id, start, end, profiles);
+  for (let start = 0; start < files.length; start += batchSize) {
+    const end = Math.min(start + batchSize, files.length);
+    const uploaded = await uploadBatch(baseURL, created.job.id, start, end, files);
     accepted += uploaded.upload.accepted;
   }
 
@@ -244,11 +244,13 @@ async function main() {
           JD_TEMPLATES.map((template, index) => `${template.title} (${jobCounts[index]})`).join(", ") +
           ` — ${totalSlots} total slots.`,
   );
-  console.log(`Fetching a shared pool of ${sharedPoolSize} real candidates (some will apply to more than one JD)...`);
-  const sharedPool = await buildPublicCandidatePool(sharedPoolSize);
+  console.log(
+    `Rendering a shared pool of ${sharedPoolSize} real CVs from public datasets (some will apply to more than one JD)...`,
+  );
+  const sharedPool = await buildPublicCandidateFiles(sharedPoolSize);
   console.log(
     sharedPool
-      ? `Sourced ${sharedPool.length} real candidates from public datasets (opensporks/resumes, brackozi/Resume, InferencePrince555/Resume-Dataset + randomuser.me).`
+      ? `Sourced ${sharedPool.length} real CVs from public datasets (opensporks/resumes, brackozi/Resume, InferencePrince555/Resume-Dataset + randomuser.me).`
       : "Public dataset fetch unavailable; using local synthetic profiles for every JD.",
   );
 
@@ -257,8 +259,8 @@ async function main() {
   for (const [index, template] of JD_TEMPLATES.entries()) {
     const count = jobCounts[index];
     console.log(`\n— ${template.title} (${template.popularity} volume, ${count} CV) —`);
-    const profiles = sharedPool ? sampleProfiles(sharedPool, count) : resolveProfiles(null, count);
-    const summary = await seedJob(template, profiles, appearances);
+    const files = sharedPool ? sampleCandidateFiles(sharedPool, count) : resolveCandidateFiles(null, count);
+    const summary = await seedJob(template, files, appearances);
     console.log(`  ${summary.job_url}  (${summary.cv_count} CV)`);
     summaries.push(summary);
   }
