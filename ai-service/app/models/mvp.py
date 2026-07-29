@@ -44,11 +44,33 @@ class RankingSkill(StrictModel):
     evidences: list[Evidence] = Field(default_factory=list)
 
 
+class RankingEducation(StrictModel):
+    institution: str = Field(default="", max_length=300)
+    degree: str = Field(default="", max_length=200)
+    field_of_study: str = Field(default="", max_length=200)
+    evidences: list[Evidence] = Field(default_factory=list)
+
+
+class RankingCertification(StrictModel):
+    name: str = Field(min_length=1, max_length=300)
+    issuer: str = Field(default="", max_length=200)
+    evidences: list[Evidence] = Field(default_factory=list)
+
+
+class RankingLanguage(StrictModel):
+    language: str = Field(min_length=1, max_length=100)
+    proficiency: str = Field(default="", max_length=100)
+    evidences: list[Evidence] = Field(default_factory=list)
+
+
 class RankingCandidate(StrictModel):
     candidate_id: str = Field(min_length=1)
     current_title: str = Field(default="", max_length=300)
     total_years_experience: float | None = Field(default=None, ge=0, le=80)
     skills: list[RankingSkill] = Field(default_factory=list)
+    educations: list[RankingEducation] = Field(default_factory=list)
+    certifications: list[RankingCertification] = Field(default_factory=list)
+    languages: list[RankingLanguage] = Field(default_factory=list)
 
 
 class RankingRequest(StrictModel):

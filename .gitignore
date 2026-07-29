@@ -15,5 +15,6 @@ node_modules/
 .next/
 frontend/playwright-report/
 frontend/test-results/
+frontend/.data/
 data/
 

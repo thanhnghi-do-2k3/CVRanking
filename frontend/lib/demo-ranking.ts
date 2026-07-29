@@ -1,4 +1,4 @@
-import type { RankingRun, UploadResponse } from "@/lib/ranking-types";
+import type { RankingRun, Requirement, UploadResponse } from "@/lib/ranking-types";
 
 export const defaultJD = `About the role
 We are hiring a Senior Backend Engineer to own high-volume production services for an internal hiring intelligence platform.
@@ -36,10 +36,17 @@ export type StoredDemoJob = {
   cv_count: number;
   cvs: StoredCV[];
   latest_run: RankingRun | null;
+  requirements?: Requirement[];
+};
+
+export type AiRerankStatus = {
+  available: boolean;
+  provider: "gemini" | "groq" | null;
 };
 
 export type DemoStoreResponse = {
   jobs: StoredDemoJob[];
+  ai_rerank: AiRerankStatus;
 };
 
 export type JobResponse = {
@@ -54,6 +61,7 @@ export type UploadToJobResponse = {
 export type RunJobResponse = {
   job: StoredDemoJob;
   run: RankingRun;
+  ai_rerank: AiRerankStatus;
 };
 
 export type CVDocumentPreview = {

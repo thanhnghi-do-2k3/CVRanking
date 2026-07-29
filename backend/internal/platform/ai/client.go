@@ -75,16 +75,41 @@ type ExtractedSkill struct {
 	Evidences      []Evidence `json:"evidences"`
 }
 
+type EducationEntry struct {
+	Institution  string     `json:"institution"`
+	Degree       string     `json:"degree"`
+	FieldOfStudy string     `json:"field_of_study"`
+	Confidence   float64    `json:"confidence"`
+	Evidences    []Evidence `json:"evidences"`
+}
+
+type CertificationEntry struct {
+	Name       string     `json:"name"`
+	Issuer     string     `json:"issuer"`
+	Confidence float64    `json:"confidence"`
+	Evidences  []Evidence `json:"evidences"`
+}
+
+type LanguageEntry struct {
+	Language    string     `json:"language"`
+	Proficiency string     `json:"proficiency"`
+	Confidence  float64    `json:"confidence"`
+	Evidences   []Evidence `json:"evidences"`
+}
+
 type CandidateExtraction struct {
-	FullName             *StringField     `json:"full_name"`
-	Email                *StringField     `json:"email"`
-	Phone                *StringField     `json:"phone"`
-	CurrentTitle         *StringField     `json:"current_title"`
-	Summary              *StringField     `json:"summary"`
-	TotalYearsExperience *NumberField     `json:"total_years_experience"`
-	Skills               []ExtractedSkill `json:"skills"`
-	ExtractionVersion    string           `json:"extraction_model_version"`
-	PromptVersion        *string          `json:"prompt_version"`
+	FullName             *StringField         `json:"full_name"`
+	Email                *StringField         `json:"email"`
+	Phone                *StringField         `json:"phone"`
+	CurrentTitle         *StringField         `json:"current_title"`
+	Summary              *StringField         `json:"summary"`
+	TotalYearsExperience *NumberField         `json:"total_years_experience"`
+	Skills               []ExtractedSkill     `json:"skills"`
+	Educations           []EducationEntry     `json:"educations"`
+	Certifications       []CertificationEntry `json:"certifications"`
+	Languages            []LanguageEntry      `json:"languages"`
+	ExtractionVersion    string               `json:"extraction_model_version"`
+	PromptVersion        *string              `json:"prompt_version"`
 }
 
 type ResumeAnalysis struct {
@@ -98,11 +123,33 @@ type RankingSkill struct {
 	Evidences      []Evidence `json:"evidences"`
 }
 
+type RankingEducation struct {
+	Institution  string     `json:"institution"`
+	Degree       string     `json:"degree"`
+	FieldOfStudy string     `json:"field_of_study"`
+	Evidences    []Evidence `json:"evidences"`
+}
+
+type RankingCertification struct {
+	Name      string     `json:"name"`
+	Issuer    string     `json:"issuer"`
+	Evidences []Evidence `json:"evidences"`
+}
+
+type RankingLanguage struct {
+	Language    string     `json:"language"`
+	Proficiency string     `json:"proficiency"`
+	Evidences   []Evidence `json:"evidences"`
+}
+
 type RankingCandidate struct {
-	CandidateID          string         `json:"candidate_id"`
-	CurrentTitle         string         `json:"current_title"`
-	TotalYearsExperience *float64       `json:"total_years_experience,omitempty"`
-	Skills               []RankingSkill `json:"skills"`
+	CandidateID          string                 `json:"candidate_id"`
+	CurrentTitle         string                 `json:"current_title"`
+	TotalYearsExperience *float64               `json:"total_years_experience,omitempty"`
+	Skills               []RankingSkill         `json:"skills"`
+	Educations           []RankingEducation     `json:"educations,omitempty"`
+	Certifications       []RankingCertification `json:"certifications,omitempty"`
+	Languages            []RankingLanguage      `json:"languages,omitempty"`
 }
 
 type RequirementAssessment struct {

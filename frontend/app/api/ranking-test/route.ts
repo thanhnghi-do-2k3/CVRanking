@@ -1,8 +1,14 @@
+import fs from "node:fs";
+import path from "node:path";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
 const aiBaseURL = process.env.AI_INTERNAL_URL ?? process.env.AI_BASE_URL ?? "http://localhost:8000";
+
+const DATA_DIR = process.env.RANKING_DEMO_DATA_DIR || path.join(process.cwd(), ".data");
+const PDF_DIR = path.join(DATA_DIR, "pdfs");
+const STORE_FILE = path.join(DATA_DIR, "store.json");
 
 type Evidence = {
   id: string;
@@ -221,11 +227,21 @@ function problem(status: number, detail: string) {
   return NextResponse.json({ detail }, { status });
 }
 
-function readDemoStore(): DemoStore {
-  globalThis.rankingDemoStore ??= { version: 2, jobs: [] };
-  return globalThis.rankingDemoStore;
+function ensureDataDir() {
+  try {
+    fs.mkdirSync(PDF_DIR, { recursive: true });
+  } catch (error) {
+    console.warn("ranking_demo_data_dir_failed", error);
+  }
 }
 
+function pdfFilePath(cvID: string) {
+  return path.join(PDF_DIR, `${cvID}.pdf`);
+}
+
+// Keeps the large base64 PDF payloads out of the JSON file — those live on disk
+// per-CV instead, so persisting the store on every mutation stays fast even for
+// a 150-CV load-test job.
 function stripDocumentData(store: DemoStore): DemoStore {
   return {
     ...store,
@@ -233,23 +249,58 @@ function stripDocumentData(store: DemoStore): DemoStore {
       ...job,
       cvs: job.cvs.map(({ document_data_url, ...cv }) => ({
         ...cv,
-        has_document_preview: Boolean(document_data_url),
+        has_document_preview: cv.has_document_preview || Boolean(document_data_url),
       })),
     })),
   } as DemoStore;
 }
 
-function resetDemoStore() {
-  globalThis.rankingDemoStore = { version: 2, jobs: [] };
+function persistDemoStore(store: DemoStore) {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(STORE_FILE, JSON.stringify(stripDocumentData(store)));
+  } catch (error) {
+    console.warn("ranking_demo_store_persist_failed", error);
+  }
+}
+
+function loadDemoStoreFromDisk(): DemoStore {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(STORE_FILE, "utf8")) as DemoStore;
+    if (parsed && Array.isArray(parsed.jobs)) {
+      return { version: 2, jobs: parsed.jobs };
+    }
+  } catch {
+    // No persisted store yet (first run) or the file is unreadable — start fresh.
+  }
+  return { version: 2, jobs: [] };
+}
+
+function readDemoStore(): DemoStore {
+  globalThis.rankingDemoStore ??= loadDemoStoreFromDisk();
   return globalThis.rankingDemoStore;
+}
+
+function resetDemoStore() {
+  const store: DemoStore = { version: 2, jobs: [] };
+  globalThis.rankingDemoStore = store;
+  persistDemoStore(store);
+  try {
+    fs.rmSync(PDF_DIR, { recursive: true, force: true });
+  } catch (error) {
+    console.warn("ranking_demo_pdf_cleanup_failed", error);
+  }
+  return store;
 }
 
 function saveJob(job: StoredJob) {
   const store = readDemoStore();
-  globalThis.rankingDemoStore = {
+  const updated: DemoStore = {
     version: 2,
     jobs: [job, ...store.jobs.filter((item) => item.id !== job.id)].slice(0, 30),
   };
+  globalThis.rankingDemoStore = updated;
+  persistDemoStore(updated);
 }
 
 function getJob(jobID: string) {
@@ -322,12 +373,18 @@ async function buildPreviewText(file: File) {
   return "Preview text chưa khả dụng cho file này. Hãy dùng PDF/DOCX có text layer để xem nội dung trực tiếp.";
 }
 
-async function buildDocumentPreview(file: File) {
+async function buildDocumentPreview(file: File, cvID: string) {
   const mime = file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "");
   if (mime !== "application/pdf") {
     return null;
   }
   const buffer = Buffer.from(await file.arrayBuffer());
+  try {
+    ensureDataDir();
+    fs.writeFileSync(pdfFilePath(cvID), buffer);
+  } catch (error) {
+    console.warn("ranking_demo_pdf_persist_failed", error);
+  }
   return {
     document_mime: "application/pdf",
     document_data_url: `data:application/pdf;base64,${buffer.toString("base64")}`,
@@ -368,7 +425,7 @@ async function analyzeFilesForJob(files: File[], job: StoredJob) {
     const cvID = `cv-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const candidateID = `candidate-${cvIndex}`;
     const previewText = await buildPreviewText(file);
-    const documentPreview = await buildDocumentPreview(file);
+    const documentPreview = await buildDocumentPreview(file, cvID);
     try {
       const analysis = await analyzeFile(file);
       const fullName = fieldValue(
@@ -519,6 +576,15 @@ function groqModelName() {
 function aiCandidateLimit() {
   const parsed = Number(process.env.AI_RANKING_CANDIDATE_LIMIT || 25);
   return Number.isFinite(parsed) && parsed > 0 ? Math.min(200, Math.floor(parsed)) : 25;
+}
+
+function aiRerankStatus() {
+  const hasGemini = geminiKeys().length > 0;
+  const hasGroq = Boolean(groqKey());
+  return {
+    available: hasGemini || hasGroq,
+    provider: hasGemini ? ("gemini" as const) : hasGroq ? ("groq" as const) : null,
+  };
 }
 
 function sleep(ms: number) {
@@ -859,18 +925,29 @@ export async function GET(request: Request) {
   const cvID = url.searchParams.get("cv_id");
   if (url.searchParams.get("document") === "1" && cvID) {
     const cv = readDemoStore().jobs.flatMap((job) => job.cvs).find((item) => item.id === cvID);
-    if (!cv?.document_data_url) {
-      return problem(404, "Không tìm thấy file preview cho CV này.");
+    if (!cv) {
+      return problem(404, "Không tìm thấy CV này.");
+    }
+    let dataURL = cv.document_data_url;
+    if (!dataURL) {
+      try {
+        dataURL = `data:application/pdf;base64,${fs.readFileSync(pdfFilePath(cvID)).toString("base64")}`;
+      } catch {
+        return problem(404, "Không tìm thấy file preview cho CV này.");
+      }
     }
     return NextResponse.json({
       cv_id: cv.id,
       filename: cv.filename,
-      document_mime: cv.document_mime,
-      document_data_url: cv.document_data_url,
+      document_mime: cv.document_mime || "application/pdf",
+      document_data_url: dataURL,
     });
   }
 
-  return NextResponse.json(stripDocumentData(readDemoStore()));
+  return NextResponse.json({
+    ...stripDocumentData(readDemoStore()),
+    ai_rerank: aiRerankStatus(),
+  });
 }
 
 export async function POST(request: Request) {
@@ -919,7 +996,7 @@ export async function POST(request: Request) {
         return problem(404, "Không tìm thấy JD để chạy ranking.");
       }
       const updatedJob = await rankJob(job);
-      return NextResponse.json({ job: updatedJob, run: updatedJob.latest_run });
+      return NextResponse.json({ job: updatedJob, run: updatedJob.latest_run, ai_rerank: aiRerankStatus() });
     }
 
     if (jd.length < 20) {

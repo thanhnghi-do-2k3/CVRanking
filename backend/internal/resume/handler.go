@@ -346,6 +346,109 @@ func (handler *Handler) processFile(
 			return uploadItem{}, err
 		}
 	}
+	for _, education := range analysis.Candidate.Educations {
+		var evidenceID *uuid.UUID
+		for _, evidence := range education.Evidences {
+			id := uuid.New()
+			_, err = transaction.Exec(request.Context(), `
+				INSERT INTO candidate_evidences (
+					id, workspace_id, candidate_id, resume_parse_run_id, evidence_type,
+					text_excerpt, page_number, start_offset, end_offset, confidence,
+					extraction_method, model_version, created_by
+				)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'rule', $11, $12)
+			`, id, principal.WorkspaceID, candidateID, parseRunID,
+				"education:"+strings.ToLower(education.Institution), evidence.Text, evidence.Page,
+				evidence.StartOffset, evidence.EndOffset, education.Confidence,
+				analysis.Candidate.ExtractionVersion, principal.UserID)
+			if err != nil {
+				return uploadItem{}, err
+			}
+			if evidenceID == nil {
+				evidenceID = &id
+			}
+		}
+		_, err = transaction.Exec(request.Context(), `
+			INSERT INTO candidate_educations (
+				workspace_id, candidate_id, institution, degree, field_of_study, evidence_id, created_by
+			)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`, principal.WorkspaceID, candidateID, education.Institution, education.Degree,
+			education.FieldOfStudy, evidenceID, principal.UserID)
+		if err != nil {
+			return uploadItem{}, err
+		}
+	}
+	for _, certification := range analysis.Candidate.Certifications {
+		var evidenceID *uuid.UUID
+		for _, evidence := range certification.Evidences {
+			id := uuid.New()
+			_, err = transaction.Exec(request.Context(), `
+				INSERT INTO candidate_evidences (
+					id, workspace_id, candidate_id, resume_parse_run_id, evidence_type,
+					text_excerpt, page_number, start_offset, end_offset, confidence,
+					extraction_method, model_version, created_by
+				)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'rule', $11, $12)
+			`, id, principal.WorkspaceID, candidateID, parseRunID,
+				"certification:"+strings.ToLower(certification.Name), evidence.Text, evidence.Page,
+				evidence.StartOffset, evidence.EndOffset, certification.Confidence,
+				analysis.Candidate.ExtractionVersion, principal.UserID)
+			if err != nil {
+				return uploadItem{}, err
+			}
+			if evidenceID == nil {
+				evidenceID = &id
+			}
+		}
+		_, err = transaction.Exec(request.Context(), `
+			INSERT INTO candidate_certifications (
+				workspace_id, candidate_id, name, issuer, evidence_id, created_by
+			)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, principal.WorkspaceID, candidateID, certification.Name, certification.Issuer,
+			evidenceID, principal.UserID)
+		if err != nil {
+			return uploadItem{}, err
+		}
+	}
+	for _, language := range analysis.Candidate.Languages {
+		var evidenceID *uuid.UUID
+		for _, evidence := range language.Evidences {
+			id := uuid.New()
+			_, err = transaction.Exec(request.Context(), `
+				INSERT INTO candidate_evidences (
+					id, workspace_id, candidate_id, resume_parse_run_id, evidence_type,
+					text_excerpt, page_number, start_offset, end_offset, confidence,
+					extraction_method, model_version, created_by
+				)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'rule', $11, $12)
+			`, id, principal.WorkspaceID, candidateID, parseRunID,
+				"language:"+strings.ToLower(language.Language), evidence.Text, evidence.Page,
+				evidence.StartOffset, evidence.EndOffset, language.Confidence,
+				analysis.Candidate.ExtractionVersion, principal.UserID)
+			if err != nil {
+				return uploadItem{}, err
+			}
+			if evidenceID == nil {
+				evidenceID = &id
+			}
+		}
+		var proficiency *string
+		if language.Proficiency != "" {
+			proficiency = &language.Proficiency
+		}
+		_, err = transaction.Exec(request.Context(), `
+			INSERT INTO candidate_languages (
+				workspace_id, candidate_id, language, proficiency, evidence_id, created_by
+			)
+			VALUES ($1, $2, $3, $4, $5, $6)
+		`, principal.WorkspaceID, candidateID, language.Language, proficiency,
+			evidenceID, principal.UserID)
+		if err != nil {
+			return uploadItem{}, err
+		}
+	}
 	if err := audit.Write(
 		request.Context(), transaction, principal.WorkspaceID, principal.UserID,
 		"resume.uploaded", "resume", &resumeID, request,

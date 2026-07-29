@@ -110,6 +110,9 @@ type candidateForScoring struct {
 	Status               string
 	Filename             string
 	Skills               []ai.RankingSkill
+	Educations           []ai.RankingEducation
+	Certifications       []ai.RankingCertification
+	Languages            []ai.RankingLanguage
 }
 
 func canRun(principal auth.Principal) bool {
@@ -156,6 +159,9 @@ func (handler *Handler) create(writer http.ResponseWriter, request *http.Request
 			CurrentTitle:         candidate.CurrentTitle,
 			TotalYearsExperience: candidate.TotalYearsExperience,
 			Skills:               candidate.Skills,
+			Educations:           candidate.Educations,
+			Certifications:       candidate.Certifications,
+			Languages:            candidate.Languages,
 		})
 	}
 	scored, err := handler.ai.Score(request.Context(), snapshot.Requirements, payloadCandidates)
@@ -394,7 +400,118 @@ func (handler *Handler) loadCandidatesForScoring(ctx context.Context, workspaceI
 			candidates[index].Skills = append(candidates[index].Skills, skill)
 		}
 	}
-	return candidates, skillRows.Err()
+	if err := skillRows.Err(); err != nil {
+		return nil, err
+	}
+
+	educationRows, err := handler.database.Query(ctx, `
+		SELECT ce.candidate_id, ce.institution, ce.degree, ce.field_of_study,
+		       ev.id, ev.text_excerpt, ev.page_number, ev.start_offset, ev.end_offset
+		FROM candidate_educations ce
+		LEFT JOIN candidate_evidences ev
+		  ON ev.id = ce.evidence_id AND ev.workspace_id = ce.workspace_id
+		WHERE ce.workspace_id = $1 AND ce.candidate_id = ANY($2)
+	`, workspaceID, candidateIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer educationRows.Close()
+	for educationRows.Next() {
+		var candidateID uuid.UUID
+		var education ai.RankingEducation
+		var evidenceID *uuid.UUID
+		var evidenceText *string
+		var evidence ai.Evidence
+		if err := educationRows.Scan(
+			&candidateID, &education.Institution, &education.Degree, &education.FieldOfStudy,
+			&evidenceID, &evidenceText, &evidence.Page, &evidence.StartOffset, &evidence.EndOffset,
+		); err != nil {
+			return nil, err
+		}
+		if evidenceID != nil && evidenceText != nil {
+			evidence.ID = evidenceID.String()
+			evidence.Text = *evidenceText
+			education.Evidences = []ai.Evidence{evidence}
+		}
+		if index, ok := indexByID[candidateID]; ok {
+			candidates[index].Educations = append(candidates[index].Educations, education)
+		}
+	}
+	if err := educationRows.Err(); err != nil {
+		return nil, err
+	}
+
+	certificationRows, err := handler.database.Query(ctx, `
+		SELECT cc.candidate_id, cc.name, cc.issuer,
+		       ev.id, ev.text_excerpt, ev.page_number, ev.start_offset, ev.end_offset
+		FROM candidate_certifications cc
+		LEFT JOIN candidate_evidences ev
+		  ON ev.id = cc.evidence_id AND ev.workspace_id = cc.workspace_id
+		WHERE cc.workspace_id = $1 AND cc.candidate_id = ANY($2)
+	`, workspaceID, candidateIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer certificationRows.Close()
+	for certificationRows.Next() {
+		var candidateID uuid.UUID
+		var certification ai.RankingCertification
+		var evidenceID *uuid.UUID
+		var evidenceText *string
+		var evidence ai.Evidence
+		if err := certificationRows.Scan(
+			&candidateID, &certification.Name, &certification.Issuer,
+			&evidenceID, &evidenceText, &evidence.Page, &evidence.StartOffset, &evidence.EndOffset,
+		); err != nil {
+			return nil, err
+		}
+		if evidenceID != nil && evidenceText != nil {
+			evidence.ID = evidenceID.String()
+			evidence.Text = *evidenceText
+			certification.Evidences = []ai.Evidence{evidence}
+		}
+		if index, ok := indexByID[candidateID]; ok {
+			candidates[index].Certifications = append(candidates[index].Certifications, certification)
+		}
+	}
+	if err := certificationRows.Err(); err != nil {
+		return nil, err
+	}
+
+	languageRows, err := handler.database.Query(ctx, `
+		SELECT cl.candidate_id, cl.language, COALESCE(cl.proficiency, ''),
+		       ev.id, ev.text_excerpt, ev.page_number, ev.start_offset, ev.end_offset
+		FROM candidate_languages cl
+		LEFT JOIN candidate_evidences ev
+		  ON ev.id = cl.evidence_id AND ev.workspace_id = cl.workspace_id
+		WHERE cl.workspace_id = $1 AND cl.candidate_id = ANY($2)
+	`, workspaceID, candidateIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer languageRows.Close()
+	for languageRows.Next() {
+		var candidateID uuid.UUID
+		var language ai.RankingLanguage
+		var evidenceID *uuid.UUID
+		var evidenceText *string
+		var evidence ai.Evidence
+		if err := languageRows.Scan(
+			&candidateID, &language.Language, &language.Proficiency,
+			&evidenceID, &evidenceText, &evidence.Page, &evidence.StartOffset, &evidence.EndOffset,
+		); err != nil {
+			return nil, err
+		}
+		if evidenceID != nil && evidenceText != nil {
+			evidence.ID = evidenceID.String()
+			evidence.Text = *evidenceText
+			language.Evidences = []ai.Evidence{evidence}
+		}
+		if index, ok := indexByID[candidateID]; ok {
+			candidates[index].Languages = append(candidates[index].Languages, language)
+		}
+	}
+	return candidates, languageRows.Err()
 }
 
 func (handler *Handler) loadCandidateEvidences(
