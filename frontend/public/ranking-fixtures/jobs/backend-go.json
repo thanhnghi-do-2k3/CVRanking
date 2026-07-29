@@ -1,0 +1,6 @@
+{
+  "id": "backend-go",
+  "title": "Senior Backend Engineer",
+  "description": "About the role\nWe are hiring a Senior Backend Engineer to own high-volume production services for an internal hiring intelligence platform.\n\nKey responsibilities\n- Design and maintain REST APIs, background jobs and service integrations.\n- Improve PostgreSQL performance, Redis caching and production observability.\n- Partner with product and data teams to ship reliable recruiter workflows.\n\nRequirements\n- 5+ years building production backend systems.\n- Strong experience with Go, PostgreSQL, Docker, Redis and REST API design.\n- Comfortable debugging performance, reliability and database bottlenecks.\n\nNice to have\n- Kubernetes, AWS and experience operating multi-service platforms.",
+  "expected_top": "01-alex-strong-backend.pdf"
+}

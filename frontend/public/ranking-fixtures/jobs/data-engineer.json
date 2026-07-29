@@ -1,0 +1,6 @@
+{
+  "id": "data-engineer",
+  "title": "Data Engineer",
+  "description": "About the role\nWe are hiring a Data Engineer to build trusted data pipelines and analytics-ready models for hiring operations.\n\nKey responsibilities\n- Build batch and streaming pipelines with clear ownership and observability.\n- Implement data quality checks, warehouse models and downstream datasets.\n- Partner with analytics and product teams to improve decision-making data.\n\nRequirements\n- 4+ years shipping production data platforms.\n- Strong Python, SQL, data pipelines, Airflow and cloud warehouse experience.\n- Practical understanding of reliability, lineage and operational monitoring.\n\nNice to have\n- Spark, dbt, Docker and AWS production experience.",
+  "expected_top": "13-anh-data-engineer.pdf"
+}

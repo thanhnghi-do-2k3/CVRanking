@@ -1,0 +1,88 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 3229 >>
+stream
+0.973 0.980 0.992 rg 0 0 595 842 re f
+0.071 0.125 0.243 rg 0 724 595 118 re f
+0.145 0.388 0.922 rg 38 690 96 8 re f
+BT /F2 28 Tf 1.000 1.000 1.000 rg 38 786 Td (Minh Vo) Tj ET
+BT /F1 13 Tf 0.816 0.878 1.000 rg 40 762 Td (Machine Learning Engineer) Tj ET
+BT /F1 9 Tf 0.710 0.784 0.910 rg 40 742 Td (minh@example.com  -  Ho Chi Minh City  -  Available in 30 days) Tj ET
+1 1 1 rg 34 596 186 96 re f
+0.898 0.918 0.953 RG 34 596 186 96 re S
+BT /F2 10 Tf 0.145 0.388 0.922 rg 52 668 Td (PROFILE) Tj ET
+1 1 1 rg 240 596 320 96 re f
+0.898 0.918 0.953 RG 240 596 320 96 re S
+BT /F2 10 Tf 0.145 0.388 0.922 rg 258 668 Td (SELECTED IMPACT) Tj ET
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 646 Td (6 years experience shipping) Tj ET
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 629 Td (machine learning systems.) Tj ET
+BT /F1 9 Tf 0.208 0.254 0.333 rg 258 646 Td (- Built resume parsing, semantic ranking and classification pipelines for) Tj ET
+BT /F1 9 Tf 0.208 0.254 0.333 rg 258 630 Td (production products.) Tj ET
+BT /F1 9 Tf 0.208 0.254 0.333 rg 258 614 Td (- Designed offline evaluation, feature quality checks and API deployment for) Tj ET
+BT /F1 9 Tf 0.208 0.254 0.333 rg 258 598 Td (ML services.) Tj ET
+BT /F2 11 Tf 0.145 0.388 0.922 rg 38 548 Td (CORE SKILLS) Tj ET
+0.898 0.918 0.953 RG 38 535 520 1 re S
+0.937 0.965 1 rg 38 499 64 24 re f
+0.745 0.839 1 RG 38 499 64 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 50 506 Td (Python) Tj ET
+0.937 0.965 1 rg 112 499 64 24 re f
+0.745 0.839 1 RG 112 499 64 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 124 506 Td (SQL) Tj ET
+0.937 0.965 1 rg 186 499 64 24 re f
+0.745 0.839 1 RG 186 499 64 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 198 506 Td (NLP) Tj ET
+0.937 0.965 1 rg 260 499 66 24 re f
+0.745 0.839 1 RG 260 499 66 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 272 506 Td (PyTorch) Tj ET
+0.937 0.965 1 rg 336 499 84 24 re f
+0.745 0.839 1 RG 336 499 84 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 348 506 Td (TensorFlow) Tj ET
+0.937 0.965 1 rg 430 499 120 24 re f
+0.745 0.839 1 RG 430 499 120 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 442 506 Td (model evaluation) Tj ET
+0.937 0.965 1 rg 38 465 64 24 re f
+0.745 0.839 1 RG 38 465 64 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 50 472 Td (Docker) Tj ET
+0.937 0.965 1 rg 112 465 64 24 re f
+0.745 0.839 1 RG 112 465 64 24 re S
+BT /F2 9 Tf 0.114 0.306 0.847 rg 124 472 Td (AWS) Tj ET
+BT /F2 11 Tf 0.145 0.388 0.922 rg 38 410 Td (EXPERIENCE HIGHLIGHTS) Tj ET
+0.898 0.918 0.953 RG 38 397 520 1 re S
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 368 Td (- 6 years experience shipping machine learning systems.) Tj ET
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 348 Td (- Built resume parsing, semantic ranking and classification pipelines for production products.) Tj ET
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 328 Td (- Designed offline evaluation, feature quality checks and API deployment for ML services.) Tj ET
+BT /F2 11 Tf 0.145 0.388 0.922 rg 38 238 Td (SIGNALS FOR TALENTRANK) Tj ET
+0.898 0.918 0.953 RG 38 225 520 1 re S
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 198 Td (Evidence-rich resume with role title, years of experience, skills, and impact statements.) Tj ET
+BT /F1 10 Tf 0.208 0.254 0.333 rg 52 176 Td (Designed for local ranking tests while remaining readable in CV preview.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000321 00000 n 
+0000000396 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3677
+%%EOF

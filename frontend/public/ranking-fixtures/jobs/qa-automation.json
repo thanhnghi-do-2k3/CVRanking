@@ -1,0 +1,6 @@
+{
+  "id": "qa-automation",
+  "title": "QA Automation Engineer",
+  "description": "About the role\nWe are hiring a QA Automation Engineer to raise release confidence across recruiter-facing web applications.\n\nKey responsibilities\n- Own Playwright regression suites, API testing and release quality gates.\n- Reduce flaky tests, improve CI feedback and coordinate bug triage.\n- Define practical test plans for complex product workflows.\n\nRequirements\n- 3+ years testing production web applications.\n- Strong Playwright, API testing, test planning and CI experience.\n- Comfortable writing automation in TypeScript.\n\nNice to have\n- Docker, accessibility checks and lightweight performance smoke testing.",
+  "expected_top": "09-tuan-qa-automation.pdf"
+}

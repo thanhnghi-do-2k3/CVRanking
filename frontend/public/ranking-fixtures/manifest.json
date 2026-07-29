@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "generated_at": "2026-07-28T17:14:25+00:00",
+  "sets": [
+    {
+      "id": "backend-go",
+      "name": "Backend Go/PostgreSQL",
+      "description": "JD backend senior; expected top candidate: Alex Nguyen.",
+      "job_config_path": "/ranking-fixtures/jobs/backend-go.json",
+      "expected_top": "01-alex-strong-backend.pdf",
+      "cvs": [
+        {
+          "name": "01-alex-strong-backend.pdf",
+          "candidate": "Alex Nguyen",
+          "path": "/ranking-fixtures/cvs/01-alex-strong-backend.pdf"
+        },
+        {
+          "name": "02-binh-mid-backend.pdf",
+          "candidate": "Binh Tran",
+          "path": "/ranking-fixtures/cvs/02-binh-mid-backend.pdf"
+        },
+        {
+          "name": "04-dana-devops.pdf",
+          "candidate": "Dana Pham",
+          "path": "/ranking-fixtures/cvs/04-dana-devops.pdf"
+        },
+        {
+          "name": "03-chris-frontend.pdf",
+          "candidate": "Chris Le",
+          "path": "/ranking-fixtures/cvs/03-chris-frontend.pdf"
+        }
+      ]
+    },
+    {
+      "id": "ml-python",
+      "name": "ML Python/NLP",
+      "description": "JD machine learning; expected top candidate: Minh Vo.",
+      "job_config_path": "/ranking-fixtures/jobs/ml-python.json",
+      "expected_top": "05-minh-ml-engineer.pdf",
+      "cvs": [
+        {
+          "name": "05-minh-ml-engineer.pdf",
+          "candidate": "Minh Vo",
+          "path": "/ranking-fixtures/cvs/05-minh-ml-engineer.pdf"
+        },
+        {
+          "name": "06-linh-data-analyst.pdf",
+          "candidate": "Linh Hoang",
+          "path": "/ranking-fixtures/cvs/06-linh-data-analyst.pdf"
+        },
+        {
+          "name": "02-binh-mid-backend.pdf",
+          "candidate": "Binh Tran",
+          "path": "/ranking-fixtures/cvs/02-binh-mid-backend.pdf"
+        },
+        {
+          "name": "07-quan-java-backend.pdf",
+          "candidate": "Quan Dang",
+          "path": "/ranking-fixtures/cvs/07-quan-java-backend.pdf"
+        }
+      ]
+    },
+    {
+      "id": "fullstack-react",
+      "name": "Full-stack React/Node",
+      "description": "JD full-stack product; expected top candidate: Sara Nguyen.",
+      "job_config_path": "/ranking-fixtures/jobs/fullstack-react.json",
+      "expected_top": "08-sara-fullstack.pdf",
+      "cvs": [
+        {
+          "name": "08-sara-fullstack.pdf",
+          "candidate": "Sara Nguyen",
+          "path": "/ranking-fixtures/cvs/08-sara-fullstack.pdf"
+        },
+        {
+          "name": "03-chris-frontend.pdf",
+          "candidate": "Chris Le",
+          "path": "/ranking-fixtures/cvs/03-chris-frontend.pdf"
+        },
+        {
+          "name": "02-binh-mid-backend.pdf",
+          "candidate": "Binh Tran",
+          "path": "/ranking-fixtures/cvs/02-binh-mid-backend.pdf"
+        },
+        {
+          "name": "07-quan-java-backend.pdf",
+          "candidate": "Quan Dang",
+          "path": "/ranking-fixtures/cvs/07-quan-java-backend.pdf"
+        }
+      ]
+    },
+    {
+      "id": "qa-automation",
+      "name": "QA Automation",
+      "description": "JD QA automation; expected top candidate: Tuan Pham.",
+      "job_config_path": "/ranking-fixtures/jobs/qa-automation.json",
+      "expected_top": "09-tuan-qa-automation.pdf",
+      "cvs": [
+        {
+          "name": "09-tuan-qa-automation.pdf",
+          "candidate": "Tuan Pham",
+          "path": "/ranking-fixtures/cvs/09-tuan-qa-automation.pdf"
+        },
+        {
+          "name": "10-mai-manual-qa.pdf",
+          "candidate": "Mai Le",
+          "path": "/ranking-fixtures/cvs/10-mai-manual-qa.pdf"
+        },
+        {
+          "name": "03-chris-frontend.pdf",
+          "candidate": "Chris Le",
+          "path": "/ranking-fixtures/cvs/03-chris-frontend.pdf"
+        },
+        {
+          "name": "08-sara-fullstack.pdf",
+          "candidate": "Sara Nguyen",
+          "path": "/ranking-fixtures/cvs/08-sara-fullstack.pdf"
+        }
+      ]
+    },
+    {
+      "id": "product-manager",
+      "name": "Product Manager",
+      "description": "JD product manager; expected top candidate: Hanh Bui.",
+      "job_config_path": "/ranking-fixtures/jobs/product-manager.json",
+      "expected_top": "11-hanh-product-manager.pdf",
+      "cvs": [
+        {
+          "name": "11-hanh-product-manager.pdf",
+          "candidate": "Hanh Bui",
+          "path": "/ranking-fixtures/cvs/11-hanh-product-manager.pdf"
+        },
+        {
+          "name": "12-nam-project-manager.pdf",
+          "candidate": "Nam Do",
+          "path": "/ranking-fixtures/cvs/12-nam-project-manager.pdf"
+        },
+        {
+          "name": "08-sara-fullstack.pdf",
+          "candidate": "Sara Nguyen",
+          "path": "/ranking-fixtures/cvs/08-sara-fullstack.pdf"
+        },
+        {
+          "name": "06-linh-data-analyst.pdf",
+          "candidate": "Linh Hoang",
+          "path": "/ranking-fixtures/cvs/06-linh-data-analyst.pdf"
+        }
+      ]
+    },
+    {
+      "id": "data-engineer",
+      "name": "Data Engineer",
+      "description": "JD data engineer; expected top candidate: Anh Tran.",
+      "job_config_path": "/ranking-fixtures/jobs/data-engineer.json",
+      "expected_top": "13-anh-data-engineer.pdf",
+      "cvs": [
+        {
+          "name": "13-anh-data-engineer.pdf",
+          "candidate": "Anh Tran",
+          "path": "/ranking-fixtures/cvs/13-anh-data-engineer.pdf"
+        },
+        {
+          "name": "14-vy-bi-engineer.pdf",
+          "candidate": "Vy Nguyen",
+          "path": "/ranking-fixtures/cvs/14-vy-bi-engineer.pdf"
+        },
+        {
+          "name": "05-minh-ml-engineer.pdf",
+          "candidate": "Minh Vo",
+          "path": "/ranking-fixtures/cvs/05-minh-ml-engineer.pdf"
+        },
+        {
+          "name": "06-linh-data-analyst.pdf",
+          "candidate": "Linh Hoang",
+          "path": "/ranking-fixtures/cvs/06-linh-data-analyst.pdf"
+        }
+      ]
+    }
+  ]
+}

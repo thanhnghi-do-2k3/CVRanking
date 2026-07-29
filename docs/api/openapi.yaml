@@ -1,0 +1,634 @@
+openapi: 3.1.0
+info:
+  title: TalentRank API
+  version: 0.1.0
+  description: Human-in-the-loop candidate ranking API. All tenant resources are workspace scoped.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - { name: System }
+  - { name: Auth }
+  - { name: Workspace }
+  - { name: Jobs }
+  - { name: Candidates }
+  - { name: Resumes }
+  - { name: Ranking }
+  - { name: Feedback }
+  - { name: Evaluation }
+paths:
+  /healthz:
+    get:
+      security: []
+      tags: [System]
+      operationId: health
+      responses:
+        "200": { description: Process is alive, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+  /readyz:
+    get:
+      security: []
+      tags: [System]
+      operationId: readiness
+      responses:
+        "200": { description: Dependencies are ready, content: { application/json: { schema: { $ref: "#/components/schemas/Health" } } } }
+        "503": { $ref: "#/components/responses/ServiceUnavailable" }
+  /auth/register:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: register
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RegisterRequest" } } } }
+      responses:
+        "202": { description: Registration accepted; email verification is pending, content: { application/json: { schema: { $ref: "#/components/schemas/VerificationPending" } } } }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/login:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: login
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/LoginRequest" } } } }
+      responses:
+        "200": { description: Authenticated, content: { application/json: { schema: { $ref: "#/components/schemas/AuthTokens" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /auth/refresh:
+    post:
+      security: [{ refreshCookie: [] }]
+      tags: [Auth]
+      operationId: refresh
+      responses:
+        "200": { description: Rotated tokens, content: { application/json: { schema: { $ref: "#/components/schemas/AuthTokens" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /auth/verify-email:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: verifyEmail
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TokenRequest" } } } }
+      responses:
+        "200": { description: Email verified and session created, content: { application/json: { schema: { $ref: "#/components/schemas/AuthTokens" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/resend-verification:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: resendVerification
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/EmailRequest" } } } }
+      responses:
+        "202": { description: Accepted whether or not an eligible account exists, content: { application/json: { schema: { $ref: "#/components/schemas/VerificationPending" } } } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /auth/invitations/inspect:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: inspectInvitation
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TokenRequest" } } } }
+      responses:
+        "200": { description: Invitation details, content: { application/json: { schema: { $ref: "#/components/schemas/InvitationInspection" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/invitations/accept:
+    post:
+      security: []
+      tags: [Auth]
+      operationId: acceptInvitation
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/AcceptInvitationRequest" } } } }
+      responses:
+        "200": { description: Invitation accepted and session created, content: { application/json: { schema: { $ref: "#/components/schemas/AuthTokens" } } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      responses:
+        "204": { description: Refresh token revoked }
+  /auth/me:
+    get:
+      tags: [Auth]
+      operationId: me
+      responses:
+        "200": { description: Current user and memberships, content: { application/json: { schema: { $ref: "#/components/schemas/CurrentSession" } } } }
+  /auth/switch-workspace:
+    post:
+      tags: [Auth]
+      operationId: switchWorkspace
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [workspace_id], properties: { workspace_id: { type: string, format: uuid } } } } } }
+      responses:
+        "200": { description: New workspace-scoped session, content: { application/json: { schema: { $ref: "#/components/schemas/AuthTokens" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /workspace/members:
+    get:
+      tags: [Workspace]
+      operationId: listWorkspaceMembers
+      responses:
+        "200": { description: Workspace members, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/WorkspaceMember" } } } } } } }
+  /workspace/members/{memberId}:
+    parameters: [{ $ref: "#/components/parameters/MemberId" }]
+    patch:
+      tags: [Workspace]
+      operationId: updateWorkspaceMember
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/MemberUpdate" } } } }
+      responses:
+        "200": { description: Member updated, content: { application/json: { schema: { $ref: "#/components/schemas/WorkspaceMember" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      tags: [Workspace]
+      operationId: removeWorkspaceMember
+      responses:
+        "204": { description: Membership removed }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /workspace/invitations:
+    get:
+      tags: [Workspace]
+      operationId: listWorkspaceInvitations
+      responses:
+        "200": { description: Workspace invitations }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Workspace]
+      operationId: createWorkspaceInvitation
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/InvitationWrite" } } } }
+      responses:
+        "201": { description: Invitation created, content: { application/json: { schema: { $ref: "#/components/schemas/Invitation" } } } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /workspace/invitations/{invitationId}/resend:
+    parameters: [{ $ref: "#/components/parameters/InvitationId" }]
+    post:
+      tags: [Workspace]
+      operationId: resendWorkspaceInvitation
+      responses:
+        "202": { description: Invitation resent with a new token }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /workspace/invitations/{invitationId}:
+    parameters: [{ $ref: "#/components/parameters/InvitationId" }]
+    delete:
+      tags: [Workspace]
+      operationId: revokeWorkspaceInvitation
+      responses:
+        "204": { description: Invitation revoked }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /jobs:
+    get:
+      tags: [Jobs]
+      operationId: listJobs
+      responses:
+        "200": { description: Workspace jobs, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/JobListItem" } } } } } } }
+    post:
+      tags: [Jobs]
+      operationId: createJob
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/JobWrite" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Job" } } } }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /jobs/{jobId}:
+    parameters: [{ $ref: "#/components/parameters/JobId" }]
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      responses:
+        "200": { description: Job, content: { application/json: { schema: { $ref: "#/components/schemas/Job" } } } }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /jobs/{jobId}/requirements:
+    parameters: [{ $ref: "#/components/parameters/JobId" }]
+    put:
+      tags: [Jobs]
+      operationId: replaceRequirements
+      requestBody: { required: true, content: { application/json: { schema: { type: array, maxItems: 200, items: { $ref: "#/components/schemas/Requirement" } } } } }
+      responses:
+        "200": { description: New immutable job version, content: { application/json: { schema: { $ref: "#/components/schemas/Job" } } } }
+  /jobs/{jobId}/candidates:
+    get:
+      tags: [Candidates]
+      operationId: listJobCandidates
+      parameters: [{ $ref: "#/components/parameters/JobId" }]
+      responses:
+        "200": { description: Candidates attached to the job, content: { application/json: { schema: { type: object, required: [items], properties: { items: { type: array, items: { $ref: "#/components/schemas/Candidate" } } } } } } }
+  /candidates/{candidateId}:
+    parameters: [{ $ref: "#/components/parameters/CandidateId" }]
+    get:
+      tags: [Candidates]
+      operationId: getCandidate
+      responses:
+        "200": { description: Candidate profile }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /resumes/bulk-upload:
+    post:
+      tags: [Resumes]
+      operationId: bulkUploadResumes
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, required: [job_id, files], properties: { job_id: { type: string, format: uuid }, files: { type: array, minItems: 1, maxItems: 50, items: { type: string, format: binary } } } } } } }
+      responses:
+        "201": { description: Parsed files with per-file status, content: { application/json: { schema: { $ref: "#/components/schemas/BulkUploadResponse" } } } }
+  /resumes/{resumeId}/file:
+    get:
+      tags: [Resumes]
+      operationId: downloadResumeFile
+      parameters: [{ $ref: "#/components/parameters/ResumeId" }]
+      responses:
+        "200": { description: Original PDF or DOCX file }
+  /jobs/{jobId}/ranking-runs:
+    parameters: [{ $ref: "#/components/parameters/JobId" }]
+    post:
+      tags: [Ranking]
+      operationId: createRankingRun
+      responses:
+        "201": { description: Completed ranking run with results, content: { application/json: { schema: { $ref: "#/components/schemas/RankingRun" } } } }
+        "409": { $ref: "#/components/responses/Conflict" }
+    get:
+      tags: [Ranking]
+      operationId: listRankingRuns
+      responses:
+        "200": { description: Ranking runs, content: { application/json: { schema: { type: object, required: [runs], properties: { runs: { type: array, items: { $ref: "#/components/schemas/RankingRun" } } } } } } }
+  /ranking-runs/{runId}:
+    get:
+      tags: [Ranking]
+      operationId: getRankingRun
+      parameters: [{ $ref: "#/components/parameters/RunId" }]
+      responses:
+        "200": { description: Ranking run, content: { application/json: { schema: { $ref: "#/components/schemas/RankingRun" } } } }
+  /ranking-runs/{runId}/results:
+    get:
+      tags: [Ranking]
+      operationId: listRankingResults
+      parameters: [{ $ref: "#/components/parameters/RunId" }]
+      responses:
+        "200": { description: Ranked candidates, content: { application/json: { schema: { type: object, required: [results], properties: { results: { type: array, items: { $ref: "#/components/schemas/RankingResult" } } } } } } }
+  /ranking-runs/{runId}/results/{candidateId}:
+    get:
+      tags: [Ranking]
+      operationId: getRankingResult
+      parameters:
+        - { $ref: "#/components/parameters/RunId" }
+        - { $ref: "#/components/parameters/CandidateId" }
+      responses:
+        "200": { description: Evidence-backed result, content: { application/json: { schema: { $ref: "#/components/schemas/RankingResult" } } } }
+  /candidates/{candidateId}/feedback:
+    post:
+      tags: [Feedback]
+      operationId: createFeedback
+      parameters: [{ $ref: "#/components/parameters/CandidateId" }]
+      responses:
+        "201": { description: Feedback recorded }
+  /candidates/{candidateId}/reviews:
+    post:
+      tags: [Feedback]
+      operationId: createReview
+      parameters: [{ $ref: "#/components/parameters/CandidateId" }]
+      responses:
+        "201": { description: Review recorded }
+  /candidates/{candidateId}/status:
+    patch:
+      tags: [Feedback]
+      operationId: updateCandidateStatus
+      parameters: [{ $ref: "#/components/parameters/CandidateId" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { $ref: "#/components/schemas/CandidateStatus" }, job_id: { type: string, format: uuid }, reason: { type: string, maxLength: 1000 } } } } } }
+      responses:
+        "200": { description: Human-reviewed status updated }
+  /evaluations/metrics:
+    get:
+      tags: [Evaluation]
+      operationId: evaluationMetrics
+      responses:
+        "200": { description: Evaluation metrics }
+  /evaluations/run:
+    post:
+      tags: [Evaluation]
+      operationId: runEvaluation
+      responses:
+        "202": { description: Evaluation accepted }
+  /evaluations/{evaluationId}:
+    get:
+      tags: [Evaluation]
+      operationId: getEvaluation
+      parameters: [{ in: path, name: evaluationId, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "200": { description: Evaluation report }
+  /evaluations/fairness-audit:
+    post:
+      tags: [Evaluation]
+      operationId: fairnessAudit
+      responses:
+        "202": { description: Fairness audit accepted }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    refreshCookie: { type: apiKey, in: cookie, name: talentrank_refresh }
+  parameters:
+    Page: { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { in: query, name: page_size, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    JobId: { in: path, name: jobId, required: true, schema: { type: string, format: uuid } }
+    CandidateId: { in: path, name: candidateId, required: true, schema: { type: string, format: uuid } }
+    ResumeId: { in: path, name: resumeId, required: true, schema: { type: string, format: uuid } }
+    RunId: { in: path, name: runId, required: true, schema: { type: string, format: uuid } }
+    MemberId: { in: path, name: memberId, required: true, schema: { type: string, format: uuid } }
+    InvitationId: { in: path, name: invitationId, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Unauthorized: { description: Missing or invalid authentication, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    Forbidden: { description: Authenticated but not allowed, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    Conflict: { description: State conflict such as last_admin or token replay, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After: { schema: { type: integer }, description: Seconds before retry }
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    NotFound: { description: Resource not found in workspace, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    ValidationError: { description: Invalid request, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+    ServiceUnavailable: { description: Dependency unavailable, content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+  schemas:
+    Health:
+      type: object
+      required: [status, service, version]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        service: { type: string }
+        version: { type: string }
+    Problem:
+      type: object
+      required: [type, title, status, code, request_id]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string }
+        detail: { type: string }
+        request_id: { type: string }
+        errors: { type: array, items: { type: object, additionalProperties: true } }
+    RegisterRequest:
+      type: object
+      required: [email, password, display_name, workspace_name]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 12, maxLength: 128 }
+        display_name: { type: string, minLength: 2, maxLength: 120 }
+        workspace_name: { type: string, minLength: 2, maxLength: 120 }
+    VerificationPending:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, const: verification_pending }
+        email: { type: string, format: email }
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    TokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 32, writeOnly: true }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1, maxLength: 128 }
+        remember_me: { type: boolean, default: false }
+    AuthTokens:
+      type: object
+      required: [access_token, token_type, expires_in, user, workspace, role]
+      properties:
+        access_token: { type: string, writeOnly: true }
+        token_type: { type: string, const: Bearer }
+        expires_in: { type: integer, const: 900 }
+        user: { $ref: "#/components/schemas/User" }
+        workspace: { $ref: "#/components/schemas/Workspace" }
+        role: { $ref: "#/components/schemas/Role" }
+    User:
+      type: object
+      required: [id, email, display_name]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        display_name: { type: string }
+        email_verified_at: { type: [string, "null"], format: date-time }
+    Role:
+      type: string
+      enum: [admin, recruiter, hiring_manager]
+    Workspace:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+    Membership:
+      type: object
+      required: [id, workspace, role, status]
+      properties:
+        id: { type: string, format: uuid }
+        workspace: { $ref: "#/components/schemas/Workspace" }
+        role: { $ref: "#/components/schemas/Role" }
+        status: { type: string, enum: [active, suspended] }
+        last_accessed_at: { type: [string, "null"], format: date-time }
+    CurrentSession:
+      type: object
+      required: [user, workspace, role, memberships]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        workspace: { $ref: "#/components/schemas/Workspace" }
+        role: { $ref: "#/components/schemas/Role" }
+        memberships: { type: array, items: { $ref: "#/components/schemas/Membership" } }
+    WorkspaceMember:
+      type: object
+      required: [id, user, role, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        user: { $ref: "#/components/schemas/User" }
+        role: { $ref: "#/components/schemas/Role" }
+        status: { type: string, enum: [active, suspended] }
+        last_accessed_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    MemberUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        role: { $ref: "#/components/schemas/Role" }
+        status: { type: string, enum: [active, suspended] }
+    InvitationWrite:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+    Invitation:
+      allOf:
+        - { $ref: "#/components/schemas/InvitationWrite" }
+        - type: object
+          required: [id, status, expires_at, created_at]
+          properties:
+            id: { type: string, format: uuid }
+            status: { type: string, enum: [pending, expired, accepted, revoked] }
+            expires_at: { type: string, format: date-time }
+            created_at: { type: string, format: date-time }
+            accepted_at: { type: [string, "null"], format: date-time }
+            invited_by_name: { type: string }
+    InvitationInspection:
+      type: object
+      required: [email, role, workspace, expires_at, account_exists]
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+        workspace: { $ref: "#/components/schemas/Workspace" }
+        expires_at: { type: string, format: date-time }
+        account_exists: { type: boolean }
+    AcceptInvitationRequest:
+      allOf:
+        - { $ref: "#/components/schemas/TokenRequest" }
+        - type: object
+          properties:
+            display_name: { type: string, minLength: 2, maxLength: 120 }
+            password: { type: string, minLength: 12, maxLength: 128, writeOnly: true }
+    JobStatus: { type: string, enum: [draft, active, paused, closed, archived] }
+    JobWrite:
+      type: object
+      required: [title, description]
+      properties:
+        title: { type: string, minLength: 2, maxLength: 200 }
+        description: { type: string, minLength: 20, maxLength: 100000 }
+        location: { type: string, maxLength: 200 }
+        employment_type: { type: string, enum: [full_time, part_time, contract, internship] }
+    JobListItem:
+      type: object
+      required: [id, title, location, employment_type, status, candidate_count, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        location: { type: string }
+        employment_type: { type: string, enum: [full_time, part_time, contract, internship] }
+        status: { $ref: "#/components/schemas/JobStatus" }
+        candidate_count: { type: integer, minimum: 0 }
+        last_ranking_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    Job:
+      allOf:
+        - { $ref: "#/components/schemas/JobListItem" }
+        - type: object
+          required: [description, current_version, requirements, updated_at]
+          properties:
+            description: { type: string }
+            summary: { type: string }
+            seniority: { type: [string, "null"] }
+            current_version: { type: integer, minimum: 1 }
+            requirements: { type: array, items: { $ref: "#/components/schemas/Requirement" } }
+            updated_at: { type: string, format: date-time }
+    Requirement:
+      type: object
+      required: [requirement_key, name, requirement_type, priority, weight, is_hard_constraint, description]
+      properties:
+        id: { type: string, format: uuid }
+        requirement_key: { type: string, maxLength: 100 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        requirement_type: { type: string, enum: [skill, experience, education, certification, language, location, other] }
+        priority: { type: string, enum: [must_have, nice_to_have] }
+        weight: { type: number, minimum: 0, maximum: 10 }
+        minimum_years: { type: number, minimum: 0, maximum: 80 }
+        is_hard_constraint: { type: boolean }
+        description: { type: string, maxLength: 2000 }
+    CandidateStatus:
+      type: string
+      enum: [new, reviewing, shortlisted, rejected, saved, hired, withdrawn]
+    Candidate:
+      type: object
+      required: [id, resume_id, full_name, current_title, status, resume_status, filename, skills, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        resume_id: { type: string, format: uuid }
+        full_name: { type: string }
+        current_title: { type: string }
+        total_years_experience: { type: [number, "null"], minimum: 0 }
+        status: { $ref: "#/components/schemas/CandidateStatus" }
+        resume_status: { type: string }
+        filename: { type: string }
+        skills: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+    BackgroundJob:
+      type: object
+      required: [id, type, status, progress]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string }
+        status: { type: string, enum: [pending, queued, running, retrying, succeeded, failed, dead_letter] }
+        stage: { type: string }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        error_code: { type: [string, "null"] }
+    UploadItem:
+      type: object
+      required: [filename, status]
+      properties:
+        resume_id: { type: string, format: uuid }
+        candidate_id: { type: string, format: uuid }
+        filename: { type: string }
+        status: { type: string, enum: [ready, duplicate, failed] }
+        full_name: { type: string }
+        current_title: { type: string }
+        skills: { type: array, items: { type: string } }
+        error: { type: string }
+    BulkUploadResponse:
+      type: object
+      required: [items, accepted, failed]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/UploadItem" } }
+        accepted: { type: integer, minimum: 0 }
+        failed: { type: integer, minimum: 0 }
+    RankingRun:
+      type: object
+      required: [id, job_id, job_version_id, status, progress, model_version, feature_schema_version, candidate_count, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        job_version_id: { type: string, format: uuid }
+        status: { type: string, enum: [pending, running, completed, failed] }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        model_version: { type: string }
+        prompt_version: { type: [string, "null"] }
+        feature_schema_version: { type: string }
+        candidate_count: { type: integer, minimum: 0 }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+        results: { type: array, items: { $ref: "#/components/schemas/RankingResult" } }
+    RankingResult:
+      type: object
+      required: [id, ranking_run_id, candidate, rank, final_score, confidence, eligibility_status, strengths, gaps, unknowns, requirement_scores]
+      properties:
+        id: { type: string, format: uuid }
+        ranking_run_id: { type: string, format: uuid }
+        candidate: { $ref: "#/components/schemas/RankingCandidateSummary" }
+        rank: { type: integer, minimum: 1 }
+        final_score: { type: number, minimum: 0, maximum: 1 }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        eligibility_status: { type: string, enum: [eligible, potentially_eligible, constraint_unknown, constraint_failed] }
+        strengths: { type: array, items: { type: string } }
+        gaps: { type: array, items: { type: string } }
+        unknowns: { type: array, items: { type: string } }
+        requirement_scores: { type: array, items: { $ref: "#/components/schemas/RequirementScore" } }
+    RankingCandidateSummary:
+      type: object
+      required: [id, resume_id, full_name, current_title, status, filename]
+      properties:
+        id: { type: string, format: uuid }
+        resume_id: { type: string, format: uuid }
+        full_name: { type: string }
+        current_title: { type: string }
+        total_years_experience: { type: [number, "null"], minimum: 0 }
+        status: { $ref: "#/components/schemas/CandidateStatus" }
+        filename: { type: string }
+    RequirementScore:
+      type: object
+      required: [requirement_key, status, score, confidence, evidence_ids]
+      properties:
+        requirement_key: { type: string }
+        status: { type: string, enum: [met, partially_met, not_found, not_met, unknown] }
+        score: { type: number, minimum: 0, maximum: 1 }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        evidence_ids: { type: array, items: { type: string, format: uuid } }

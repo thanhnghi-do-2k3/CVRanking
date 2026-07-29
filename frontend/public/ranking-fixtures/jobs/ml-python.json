@@ -1,0 +1,6 @@
+{
+  "id": "ml-python",
+  "title": "Machine Learning Engineer",
+  "description": "About the role\nWe are hiring a Machine Learning Engineer to build document understanding, extraction and candidate ranking workflows.\n\nKey responsibilities\n- Build NLP, classification and semantic ranking pipelines for production use cases.\n- Design offline model evaluation, data quality checks and monitoring loops.\n- Package ML capabilities behind reliable APIs for product teams.\n\nRequirements\n- 4+ years shipping machine learning or data products.\n- Strong Python, SQL, NLP and model evaluation experience.\n- Hands-on PyTorch or TensorFlow plus Docker-based deployment.\n\nNice to have\n- AWS, document AI, resume parsing or search/recommendation systems.",
+  "expected_top": "05-minh-ml-engineer.pdf"
+}
