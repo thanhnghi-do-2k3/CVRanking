@@ -15,10 +15,6 @@ import { PRESET_DOMAINS, PRESET_LEVELS } from '@/lib/copilot/data/jobPresets';
 import { speechService } from '@/lib/copilot/services/speechService';
 // @ts-ignore
 import { generateDeepDiveQuestions, evaluateAnswer, generateStarterQuestions, generateFinalEvaluation, classifySpeaker } from '@/lib/copilot/services/aiService';
-// @ts-ignore
-import { audioStreamer } from '@/lib/copilot/services/audioStreamer';
-// @ts-ignore
-import { liveApiService } from '@/lib/copilot/services/liveApiService';
 
 const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
@@ -44,12 +40,11 @@ export default function InterviewerPage() {
   const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
   const [interimText, setInterimText] = useState('');
   
-  const [activeCopilotTab, setActiveCopilotTab] = useState<'questions' | 'evaluation' | 'live'>('questions');
+  const [activeCopilotTab, setActiveCopilotTab] = useState<'questions' | 'evaluation'>('questions');
   const [questions, setQuestions] = useState<string[]>([]);
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [currentEvaluation, setCurrentEvaluation] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [liveText, setLiveText] = useState('');
 
   const [aiError, setAiError] = useState<string | null>(null);
   const [finalReport, setFinalReport] = useState<any>(null);
@@ -98,21 +93,9 @@ export default function InterviewerPage() {
   const handleToggleListen = () => {
     if (isListening) {
       speechService.stopListening();
-      audioStreamer.stop();
-      liveApiService.disconnect();
       setIsListening(false);
       setInterimText('');
     } else {
-      liveApiService.onText = (text: string) => {
-        setLiveText(prev => prev + text);
-        setActiveCopilotTab('live');
-      };
-      liveApiService.connect(apiKey, jobDomain, jobLevel);
-
-      audioStreamer.start((base64PCM: string) => {
-        liveApiService.sendAudioChunk(base64PCM);
-      });
-
       const success = speechService.startListening(
         (data: any) => {
           if (data.interimTranscript) {
@@ -409,7 +392,6 @@ export default function InterviewerPage() {
               onOpenSettings={() => handleOpenSettings('apikey')}
               hasTranscript={transcript.length > 0}
               _jobDomain={jobDomain}
-              liveText={liveText}
             />
           </div>
         </div>

@@ -21,7 +21,6 @@ type CopilotPanelProps = {
   onOpenSettings?: () => void;
   hasTranscript: boolean;
   _jobDomain: string;
-  liveText: string;
 };
 
 export function CopilotPanel({
@@ -35,8 +34,7 @@ export function CopilotPanel({
   onSelectQuestionToAsk,
   onOpenSettings,
   hasTranscript,
-  _jobDomain,
-  liveText
+  _jobDomain
 }: CopilotPanelProps) {
   const [activeAngle, setActiveAngle] = useState('standard');
 
@@ -106,15 +104,6 @@ export function CopilotPanel({
           >
             <Award className="w-3.5 h-3.5" />
             <span>Chấm điểm</span>
-          </button>
-          <button
-            onClick={() => onTabChange('live')}
-            className={`flex-1 text-center py-2 px-3 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-colors ${
-              activeTab === 'live' ? 'bg-white text-red-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5" />
-            <span>Live Stream</span>
           </button>
         </div>
       </div>
@@ -256,22 +245,6 @@ export function CopilotPanel({
                 );
               })
             )}
-          </div>
-        ) : activeTab === 'live' ? (
-          /* TAB 3: LIVE STREAM */
-          <div className="space-y-4">
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 h-[400px] overflow-y-auto">
-              {!liveText ? (
-                <div className="text-center py-12 space-y-3">
-                  <Flame className="w-8 h-8 text-gray-300 mx-auto animate-pulse" />
-                  <p className="text-xs text-gray-400 italic">Đang chờ tín hiệu từ AI Stream...</p>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-700 font-mono whitespace-pre-wrap leading-relaxed">
-                  {liveText}
-                </div>
-              )}
-            </div>
           </div>
         ) : (
           /* TAB 2: EVALUATION SCORECARD */
