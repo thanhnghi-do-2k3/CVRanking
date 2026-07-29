@@ -25,7 +25,7 @@ import {
 } from "@/lib/demo-ranking";
 
 type DemoShellProps = {
-  active: "jobs" | "new" | "detail";
+  active: "jobs" | "new" | "detail" | "interviewer";
   children: ReactNode;
   toolContent?: ReactNode;
 };
@@ -272,6 +272,10 @@ export function DemoShell({ active, children, toolContent }: DemoShellProps) {
           <Link className={active === "new" ? "active" : ""} href="/jobs/new">
             <Plus size={17} />
             Tạo vị trí
+          </Link>
+          <Link className={active === "interviewer" ? "active" : ""} href="/interviewer">
+            <Sparkles size={17} />
+            AI Copilot
           </Link>
         </nav>
 
